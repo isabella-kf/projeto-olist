@@ -85,97 +85,22 @@ GROUP BY 1
 ORDER BY 1 ASC;
 
 
--- Top 5 categorias por faturamento:
--- Tabela temporária unindo as tabelas 'products' e 'order_items'.
-WITH temp1 AS (
-    SELECT products.product_category_name, order_items.order_id
-    FROM products
-    JOIN order_items 
-    ON products.product_id = order_items.product_id
-),
--- Tabela temporária unindo a tabela anterior e 'orders'.
-temp2 AS (
-    SELECT temp1.product_category_name, orders.order_id
-    FROM temp1
-    JOIN orders 
-    ON temp1.order_id = orders.order_id
-),
--- Tabela temporária unindo a tabela anterior e 'order_payments'.
-temp3 AS (
-    SELECT temp2.product_category_name, temp2.order_id, order_payments.payment_value
-    FROM temp2
-    JOIN order_payments 
-    ON temp2.order_id = order_payments.order_id 
-)
--- Somar faturamento por categoria.
-SELECT 
-	product_category_name AS 'categoria', 
-	ROUND(SUM(payment_value), 2) AS 'faturamento_total'
-FROM temp3
-GROUP BY 1
-ORDER BY 2 DESC
-LIMIT 5;
-
-
--- Top 5 categorias com média de avaliações mais alta:
--- Tabela temporária unindo as tabelas 'products' e 'orders'.
-WITH temp1 AS (
-    SELECT products.product_category_name, order_items.order_id
-    FROM products
-    JOIN order_items 
-    ON products.product_id = order_items.product_id
-),
--- Tabela temporária unindo a tabela anterior e 'reviews'.
-temp2 AS (
-	SELECT temp1.product_category_name, order_reviews.review_score
-	FROM temp1
-	JOIN order_reviews
-	ON temp1.order_id = order_reviews.order_id
-)
--- Média de avaliação por categoria.
+-- Número de pedidos por mês:
 SELECT
-	product_category_name AS 'categoria',
-	ROUND(AVG(review_score), 1) AS 'méd_avaliações'
-FROM temp2
+	DATE_FORMAT(order_purchase_timestamp, '%Y-%m') AS 'ano_mês', 
+	COUNT(DISTINCT order_id) AS 'num_pedidos'
+FROM orders
 GROUP BY 1
-ORDER BY 2 DESC
-LIMIT 5;
+ORDER BY 1 ASC;
 
 
--- Período do dia em que ocorrem mais compras:
--- Contar número de pedidos...
-SELECT 
-	COUNT(order_id) AS 'num_pedidos',
--- ... de acordo com o período do dia.
-	CASE
-		WHEN DATE_FORMAT(order_purchase_timestamp, '%H') >= 0 AND DATE_FORMAT(order_purchase_timestamp, '%H') < 6 THEN 'Madrugada'
-		WHEN DATE_FORMAT(order_purchase_timestamp, '%H') >= 6  AND DATE_FORMAT(order_purchase_timestamp, '%H') < 12 THEN 'Manhã'
-		WHEN DATE_FORMAT(order_purchase_timestamp, '%H') >= 12 AND DATE_FORMAT(order_purchase_timestamp, '%H') < 18 THEN 'Tarde'
-		ELSE 'Noite'
-	END AS 'período'
-FROM orders
-GROUP BY 2
-ORDER BY 1 DESC;
-
-
--- Dias da semana em que ocorrem mais compras:
+-- Número de pedidos por ano:
 SELECT
--- Contar número de pedidos...
-	COUNT(order_id) AS 'num_pedidos',
--- ... de acordo com o dia da semana.
-	CASE
-		WHEN DAYOFWEEK(order_purchase_timestamp) = 1 THEN 'Domingo'
-		WHEN DAYOFWEEK(order_purchase_timestamp) = 2 THEN 'Segunda'
-		WHEN DAYOFWEEK(order_purchase_timestamp) = 3 THEN 'Terça'
-		WHEN DAYOFWEEK(order_purchase_timestamp) = 4 THEN 'Quarta'
-		WHEN DAYOFWEEK(order_purchase_timestamp) = 5 THEN 'Quinta'
-		WHEN DAYOFWEEK(order_purchase_timestamp) = 6 THEN 'Sexta'
-		ELSE 'Sábado'
-	END AS 'dia_da_semana'
+	DATE_FORMAT(order_purchase_timestamp, '%Y') AS 'ano', 
+	COUNT(DISTINCT order_id) AS 'num_pedidos'
 FROM orders
-GROUP BY 2
-ORDER BY 1 DESC;
-
+GROUP BY 1
+ORDER BY 1 ASC;
 
 -- Valor médio por pedido:
 -- Tabela temporária unindo 'orders' e 'payment_value'
@@ -221,6 +146,87 @@ SELECT
 FROM order_payments
 GROUP BY 1
 ORDER BY 2 DESC;
+
+
+-- Top 5 categorias por faturamento:
+-- Tabela temporária unindo as tabelas 'products' e 'order_items'.
+WITH temp1 AS (
+    SELECT products.product_category_name, order_items.order_id
+    FROM products
+    JOIN order_items 
+    ON products.product_id = order_items.product_id
+),
+-- Tabela temporária unindo a tabela anterior e 'orders'.
+temp2 AS (
+    SELECT temp1.product_category_name, orders.order_id
+    FROM temp1
+    JOIN orders 
+    ON temp1.order_id = orders.order_id
+),
+-- Tabela temporária unindo a tabela anterior e 'order_payments'.
+temp3 AS (
+    SELECT temp2.product_category_name, temp2.order_id, order_payments.payment_value
+    FROM temp2
+    JOIN order_payments 
+    ON temp2.order_id = order_payments.order_id 
+)
+-- Somar faturamento por categoria.
+SELECT 
+	product_category_name AS 'categoria', 
+	ROUND(SUM(payment_value), 2) AS 'faturamento_total'
+FROM temp3
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5;
+
+
+-- Top 5 categorias por número de pedidos:
+WITH temp1 AS (
+    SELECT products.product_category_name, order_items.order_id
+    FROM products
+    JOIN order_items 
+    ON products.product_id = order_items.product_id
+),
+-- Tabela temporária unindo a tabela anterior e 'orders'.
+temp2 AS (
+    SELECT temp1.product_category_name, orders.order_id
+    FROM temp1
+    JOIN orders 
+    ON temp1.order_id = orders.order_id
+)
+-- Contar número de pedidos por categoria.
+SELECT 
+	product_category_name AS 'categoria', 
+	COUNT(DISTINCT order_id) AS 'num_pedidos'
+FROM temp2
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5;
+
+
+-- Top 5 categorias com média de avaliações mais alta:
+-- Tabela temporária unindo as tabelas 'products' e 'orders'.
+WITH temp1 AS (
+    SELECT products.product_category_name, order_items.order_id
+    FROM products
+    JOIN order_items 
+    ON products.product_id = order_items.product_id
+),
+-- Tabela temporária unindo a tabela anterior e 'reviews'.
+temp2 AS (
+	SELECT temp1.product_category_name, order_reviews.review_score
+	FROM temp1
+	JOIN order_reviews
+	ON temp1.order_id = order_reviews.order_id
+)
+-- Média de avaliação por categoria.
+SELECT
+	product_category_name AS 'categoria',
+	ROUND(AVG(review_score), 1) AS 'méd_avaliações'
+FROM temp2
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5;
 
 
 -- Estados com maior faturamento:
@@ -279,6 +285,41 @@ SELECT
 FROM temp
 GROUP BY 1
 ORDER BY 2 DESC;
+
+
+-- Período do dia em que ocorrem mais compras:
+-- Contar número de pedidos...
+SELECT 
+	COUNT(order_id) AS 'num_pedidos',
+-- ... de acordo com o período do dia.
+	CASE
+		WHEN DATE_FORMAT(order_purchase_timestamp, '%H') >= 0 AND DATE_FORMAT(order_purchase_timestamp, '%H') < 6 THEN 'Madrugada'
+		WHEN DATE_FORMAT(order_purchase_timestamp, '%H') >= 6  AND DATE_FORMAT(order_purchase_timestamp, '%H') < 12 THEN 'Manhã'
+		WHEN DATE_FORMAT(order_purchase_timestamp, '%H') >= 12 AND DATE_FORMAT(order_purchase_timestamp, '%H') < 18 THEN 'Tarde'
+		ELSE 'Noite'
+	END AS 'período'
+FROM orders
+GROUP BY 2
+ORDER BY 1 DESC;
+
+
+-- Dias da semana em que ocorrem mais compras:
+SELECT
+-- Contar número de pedidos...
+	COUNT(order_id) AS 'num_pedidos',
+-- ... de acordo com o dia da semana.
+	CASE
+		WHEN DAYOFWEEK(order_purchase_timestamp) = 1 THEN 'Domingo'
+		WHEN DAYOFWEEK(order_purchase_timestamp) = 2 THEN 'Segunda'
+		WHEN DAYOFWEEK(order_purchase_timestamp) = 3 THEN 'Terça'
+		WHEN DAYOFWEEK(order_purchase_timestamp) = 4 THEN 'Quarta'
+		WHEN DAYOFWEEK(order_purchase_timestamp) = 5 THEN 'Quinta'
+		WHEN DAYOFWEEK(order_purchase_timestamp) = 6 THEN 'Sexta'
+		ELSE 'Sábado'
+	END AS 'dia_da_semana'
+FROM orders
+GROUP BY 2
+ORDER BY 1 DESC;
 
 
 -- Taxa de rotatividade:
